@@ -3,49 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern Pastebin</title>
-    <link rel="stylesheet" href="assets/style.css">
+    <title>Pastebin - Create Paste</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Minimalistic and clean design */
+        body {
+            font-family: 'Poppins', 'Helvetica', sans-serif;
+            background-color: #f7f7f7;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            text-align: center;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 500px;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        textarea {
+            width: 100%;
+            font-family: inherit;
+            font-size: 1rem;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        button {
+            font-size: 1rem;
+            padding: 10px 20px;
+            color: #fff;
+            background: #007bff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        p {
+            margin-top: 1rem;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
-<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
-
-<div id="content-container" class="flex flex-col items-center">
-    <h1 class="text-3xl font-semibold mb-4">Paste Something</h1>
-    <textarea id="paste-input" rows="10" cols="40" class="p-2 mb-4 bg-gray-800 border border-gray-600 text-white" placeholder="Paste your content here..."></textarea>
-    <button id="save-paste" class="bg-blue-600 p-2 rounded">Save</button>
-    <div id="paste-link" class="mt-4 hidden">
-        <p class="text-center">Share your paste:</p>
-        <a href="" id="share-link" class="text-blue-400"></a>
-    </div>
+<body>
+<div class="container">
+    <h1>Create a Paste</h1>
+    <form id="pasteForm">
+        <textarea id="pasteContent" placeholder="Paste your content here..." rows="10"></textarea>
+        <br>
+        <button type="submit">Create Paste</button>
+    </form>
+    <p id="pasteLink"></p>
 </div>
 
 <script>
-    document.getElementById('save-paste').addEventListener('click', async () => {
-        const content = document.getElementById('paste-input').value;
+    // Handle form submission
+    document.getElementById('pasteForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
 
-        if (!content) {
-            alert('Please enter some content!');
+        const pasteContent = document.getElementById('pasteContent').value.trim();
+
+        if (!pasteContent) {
+            alert('Please enter some content to create a paste.');
             return;
         }
 
-        // Send the content to the server to be saved
-        const response = await fetch('/api/save-paste', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ content })
-        });
+        try {
+            // Make a POST request to create the paste
+            const response = await fetch('/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content: pasteContent }),
+            });
 
-        const data = await response.json();
-
-        if (data.slug) {
-            // Show the generated link
-            const pasteLink = `http://localhost:3000/p/${data.slug}`;
-            document.getElementById('share-link').textContent = pasteLink;
-            document.getElementById('share-link').href = pasteLink;
-            document.getElementById('paste-link').classList.remove('hidden');
-        } else {
-            alert('Error saving your paste.');
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('pasteLink').innerHTML = `
+                    Your paste is ready! Share it with others using this URL:
+                    <a href="${data.url}" target="_blank">${data.url}</a>
+                `;
+            } else {
+                const errorText = await response.text();
+                console.error('Error:', errorText);
+                document.getElementById('pasteLink').innerText = 'Error saving paste.';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            document.getElementById('pasteLink').innerText = 'Error connecting to the server.';
         }
     });
 </script>

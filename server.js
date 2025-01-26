@@ -1,92 +1,103 @@
 // server.js
+
 const express = require('express');
-const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
-const { nanoid } = require('nanoid');
-const dotenv = require('dotenv');
+const path = require('path');
+const bodyParser = require('body-parser');
 
-dotenv.config();
-
+// Initialize express
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Initialize Supabase client
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_KEY
-);
+// Body parser middleware to handle POST data
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
-// Middleware to parse JSON request body
-app.use(express.json());
+// Serve static files (like CSS and JS)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Define routes
+// Initialize Supabase client
+const supabase = createClient(
+    'https://your-project-url.supabase.co', // Replace with your Supabase URL
+    'your-anon-key' // Replace with your Supabase anon key
+);
+
+// Route to serve the main paste page
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'views', 'index.html'));
+    res.send(`
+    <html>
+      <head>
+        <title>Pastebin - Minimalist</title>
+        <link rel="stylesheet" href="/styles.css">
+      </head>
+      <body>
+        <div class="container">
+          <h1>Create a New Paste</h1>
+          <form action="/create" method="POST">
+            <textarea name="content" placeholder="Write your paste here..." rows="10" cols="50"></textarea><br><br>
+            <button type="submit">Create Paste</button>
+          </form>
+        </div>
+      </body>
+    </html>
+  `);
 });
 
-// Save paste endpoint
-app.post('/api/save-paste', async (req, res) => {
-    const { content } = req.body;
-    if (!content) {
-        return res.status(400).json({ error: 'Paste content is required' });
-    }
-
+// Route to create a new paste and save it to Supabase
+app.post('/create', async (req, res) => {
     try {
-        // Generate a unique slug
-        const slug = nanoid(8);
-
-        // Save paste to Supabase
-        const { data, error } = await supabase
-            .from('pastes')
-            .insert([{ content, slug }]);
-
-        if (error) {
-            throw error;
+        const { content } = req.body;
+        if (!content) {
+            return res.status(400).json({ error: 'Content is required' });
         }
 
-        // Respond with the slug
-        res.status(200).json({ slug });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error saving paste' });
+        const slug = Math.random().toString(36).substr(2, 8); // Generate a random slug
+        const { data, error } = await supabase.from('pastes').insert([{ slug, content }]);
+
+        if (error) {
+            console.error('Supabase error:', error); // Log Supabase error details
+            return res.status(500).json({ error: 'Database error', details: error.message });
+        }
+
+        res.json({ url: `${req.protocol}://${req.get('host')}/p/${slug}` });
+    } catch (err) {
+        console.error('Server error:', err); // Log server-side error details
+        res.status(500).json({ error: 'Internal Server Error', details: err.message });
     }
 });
+// Route to fetch and display a paste based on the slug
+app.get('/p/:slug', async (req, res) => {
+    const slug = req.params.slug;
 
-// Display a saved paste by slug
-app.get('/paste/:slug', async (req, res) => {
-    const { slug } = req.params;
+    // Fetch paste content from Supabase
+    const { data, error } = await supabase
+        .from('pastes')
+        .select('content')
+        .eq('slug', slug)
+        .single();  // We expect only one result
 
-    try {
-        const { data, error } = await supabase
-            .from('pastes')
-            .select('content')
-            .eq('slug', slug)
-            .single();
+    if (error || !data) {
+        return res.status(404).send('Paste not found');
+    }
 
-        if (error) {
-            throw error;
-        }
-
-        if (!data) {
-            return res.status(404).send('Paste not found');
-        }
-
-        res.send(`
-      <html>
-        <body>
-          <h1>Pastebin</h1>
+    // Return the paste content as HTML
+    res.send(`
+    <html>
+      <head>
+        <title>Paste - ${slug}</title>
+        <link rel="stylesheet" href="/styles.css">
+      </head>
+      <body>
+        <div class="container">
+          <h2>Paste: ${slug}</h2>
           <pre>${data.content}</pre>
-        </body>
-      </html>
-    `);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Error retrieving paste');
-    }
+        </div>
+      </body>
+    </html>
+  `);
 });
 
 // Start the server
 app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+    console.log(`Server running on http://localhost:${PORT}`);
 });
