@@ -2,9 +2,52 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Pastebin</title>
+    <link rel="stylesheet" href="assets/style.css">
 </head>
-<body>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
 
+<div id="content-container" class="flex flex-col items-center">
+    <h1 class="text-3xl font-semibold mb-4">Paste Something</h1>
+    <textarea id="paste-input" rows="10" cols="40" class="p-2 mb-4 bg-gray-800 border border-gray-600 text-white" placeholder="Paste your content here..."></textarea>
+    <button id="save-paste" class="bg-blue-600 p-2 rounded">Save</button>
+    <div id="paste-link" class="mt-4 hidden">
+        <p class="text-center">Share your paste:</p>
+        <a href="" id="share-link" class="text-blue-400"></a>
+    </div>
+</div>
+
+<script>
+    document.getElementById('save-paste').addEventListener('click', async () => {
+        const content = document.getElementById('paste-input').value;
+
+        if (!content) {
+            alert('Please enter some content!');
+            return;
+        }
+
+        // Send the content to the server to be saved
+        const response = await fetch('/api/save-paste', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ content })
+        });
+
+        const data = await response.json();
+
+        if (data.slug) {
+            // Show the generated link
+            const pasteLink = `http://localhost:3000/p/${data.slug}`;
+            document.getElementById('share-link').textContent = pasteLink;
+            document.getElementById('share-link').href = pasteLink;
+            document.getElementById('paste-link').classList.remove('hidden');
+        } else {
+            alert('Error saving your paste.');
+        }
+    });
+</script>
 </body>
 </html>

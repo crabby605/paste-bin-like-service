@@ -1,20 +1,19 @@
 {
-  "name": "copy-paste-service",
-  "version": "0.1.0",
-  "private": true,
+  "name": "pastebin-app",
+  "version": "1.0.0",
+  "description": "A modern and minimal pastebin app using Node.js, Express, and Supabase.",
+  "main": "server.js",
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "start": "node server.js"
   },
   "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "next": "15.1.6"
+    "@supabase/supabase-js": "^2.48.1",
+    "dotenv": "^10.0.0",
+    "express": "^4.21.2",
+    "nanoid": "^3.3.8"
   },
-  "devDependencies": {
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1"
-  }
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "license": "MIT"
 }
